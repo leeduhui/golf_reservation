@@ -1,73 +1,115 @@
-// src/App.js
+/* src/App.js */
 import React, { useState, useEffect } from "react";
 import { supabase } from "./utils/supabaseClient";
 import TimeTable from "./components/TimeTable";
 import ReserveForm from "./components/ReserveForm";
+import "./App.css";
 
 function App() {
   const [reservations, setReservations] = useState([]);
   const [now, setNow] = useState(new Date());
+  const [currentDateOffset, setCurrentDateOffset] = useState(0);
 
-  // 1) 초기 데이터 로드
-  useEffect(() => {
-    supabase
+  const today = new Date();
+  const viewedDate = new Date(today);
+  viewedDate.setDate(today.getDate() + currentDateOffset);
+  const viewedDateString = viewedDate.toISOString().split("T")[0];
+
+  const fetchReservations = async () => {
+    const { data, error } = await supabase
       .from("reservations")
       .select("*")
-      .order("inserted_at", { ascending: true })
-      .then(({ data }) => setReservations(data || []));
-  }, []);
+      .order("inserted_at", { ascending: true });
+    if (!error) setReservations(data || []);
+  };
 
-  // 2) 실시간 리스너 (새 예약이나 취소가 들어올 때마다 반영)
+  useEffect(() => { fetchReservations(); }, []);
+
   useEffect(() => {
-    const subscription = supabase
-      .from("reservations")
-      .on("*", payload => {
-        // INSERT / DELETE 이벤트에 따라 상태 갱신
-        supabase
-          .from("reservations")
-          .select("*")
-          .order("inserted_at", { ascending: true })
-          .then(({ data }) => setReservations(data || []));
-      })
+    const channel = supabase
+      .channel("public:reservations")
+      .on("postgres_changes", { event: "*", schema: "public", table: "reservations" }, fetchReservations)
       .subscribe();
-
-    return () => {
-      supabase.removeSubscription(subscription);
-    };
+    return () => supabase.removeChannel(channel);
   }, []);
 
-  // 3) 현재 시간 초단위 업데이트
   useEffect(() => {
     const timer = setInterval(() => setNow(new Date()), 1000);
     return () => clearInterval(timer);
   }, []);
 
-  // 4) 예약 추가
   const handleReserve = async newRes => {
-    await supabase.from("reservations").insert(newRes);
+    const { error } = await supabase.from("reservations").insert({
+      room: newRes.room,
+      start: newRes.start,
+      end: newRes.end,
+      user: newRes.user,
+      date: viewedDateString,
+    });
+    if (error) {
+      console.error("[Supabase Error] 예약 실패:", error.message);
+      alert("예약 중 오류가 발생했습니다: " + error.message);
+    } else {
+      fetchReservations();
+    }
   };
 
-  // 5) 예약 취소
   const handleCancel = async id => {
-    await supabase.from("reservations").delete().eq("id", id);
+    const { error } = await supabase.from("reservations").delete().eq("id", id);
+    if (!error) fetchReservations();
   };
+
+  const handleDateChange = offset => {
+    setCurrentDateOffset(offset);
+  };
+
+  const filteredReservations = reservations.filter(r => r.date === viewedDateString);
 
   return (
-    <div className="container">
-      <header style={{ display: "flex", justifyContent: "space-between" }}>
-        <h1>스크린골프 예약</h1>
-        <div>{now.toLocaleTimeString("ko-KR")}</div>
+    <div className="container" style={{ maxWidth: "480px", margin: "0 auto", padding: "1rem", fontFamily: "-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif" }}>
+      <header style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "1rem" }}>
+        <h2 style={{ fontWeight: 600, fontSize: "1.25rem", margin: 0 }}>스크린골프 예약</h2>
+        <div style={{ fontSize: "0.9rem", color: "#555" }}>
+          {now.toLocaleDateString("ko-KR")}<br />{now.toLocaleTimeString("ko-KR")}
+        </div>
       </header>
-      <TimeTable
-        reservations={reservations}
-        onCancel={handleCancel}
-        currentTime={now}
-      />
-      <ReserveForm
-        reservations={reservations}
-        onReserve={handleReserve}
-        currentTime={now}
-      />
+
+      <div style={{ display: "flex", justifyContent: "center", flexWrap: "wrap", gap: "6px", marginBottom: "1rem" }}>
+        {[...Array(7)].map((_, i) => {
+          const offset = i - 3;
+          const d = new Date(today);
+          d.setDate(today.getDate() + offset);
+          const label = d.toLocaleDateString("ko-KR", { month: "2-digit", day: "2-digit", weekday: "short" });
+          const isActive = offset === currentDateOffset;
+          return (
+            <button
+              key={offset}
+              onClick={() => handleDateChange(offset)}
+              style={{
+                padding: "6px 12px",
+                borderRadius: "12px",
+                border: "none",
+                fontSize: "0.85rem",
+                backgroundColor: isActive ? "#007AFF" : "#F0F0F5",
+                color: isActive ? "white" : "#333",
+                fontWeight: isActive ? 600 : 400,
+                boxShadow: isActive ? "0 1px 3px rgba(0,0,0,0.2)" : "none",
+                transition: "background-color 0.2s ease"
+              }}
+            >
+              {label}
+            </button>
+          );
+        })}
+      </div>
+
+      <div style={{ background: "white", borderRadius: "16px", padding: "16px", boxShadow: "0 2px 6px rgba(0,0,0,0.06)", marginBottom: "1.5rem" }}>
+        <TimeTable reservations={filteredReservations} onCancel={handleCancel} currentTime={now} />
+      </div>
+
+      <div style={{ background: "white", borderRadius: "16px", padding: "16px", boxShadow: "0 2px 6px rgba(0,0,0,0.06)" }}>
+        <ReserveForm reservations={filteredReservations} onReserve={handleReserve} currentTime={now} />
+      </div>
     </div>
   );
 }
