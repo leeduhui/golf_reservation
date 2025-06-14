@@ -83,7 +83,7 @@ function App() {
   return (
     <div className="container" style={{ maxWidth: "480px", margin: "0 auto", padding: "1rem", fontFamily: "-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif" }}>
       <header style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "1rem" }}>
-        <h2 style={{ fontWeight: 600, fontSize: "1.25rem", margin: 0 }}>스크린골프 예약</h2>
+        <h2 style={{ fontWeight: 600, fontSize: "1.25rem", margin: 0 }}>성균관대역동문디이스트-스크린골프 예약</h2>
         <div style={{ fontSize: "0.9rem", color: "#555" }}>
           {now.toLocaleDateString("ko-KR")}<br />{now.toLocaleTimeString("ko-KR")}
         </div>
