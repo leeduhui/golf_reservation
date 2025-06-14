@@ -1,50 +1,49 @@
 /* src/components/TimeTable.js */
 import React from "react";
-import { rooms, slots } from "../utils/data";
+import "./TimeTable.css";
 
-export default function TimeTable({ reservations, onCancel, currentTime }) {
-  // Vertical list: each time slot as a row
+const hours = Array.from({ length: 39 }, (_, i) => {
+  const h = Math.floor((300 + i * 30) / 60);
+  const m = (300 + i * 30) % 60;
+  return `${String(h).padStart(2, "0")}:${String(m).padStart(2, "0")}`;
+});
+
+function TimeTable({ reservations, onCancel, currentTime, viewedDate }) {
+  const resMap = {};
+  reservations.forEach(r => {
+    const sIdx = hours.indexOf(r.start);
+    const eIdx = hours.indexOf(r.end);
+    for (let i = sIdx; i < eIdx; i++) {
+      resMap[i] = r;
+    }
+  });
+
+  const nowTime = new Date(currentTime);
+  const isToday = viewedDate === nowTime.toISOString().split("T")[0];
+  const nowMinutes = nowTime.getHours() * 60 + nowTime.getMinutes();
+
   return (
-    <div style={{ display: "flex", flexDirection: "column", width: "100%" }}>
-      {slots.map(time => {
-        // Check if this slot is part of a reservation
-        const reservation = reservations.find(r => {
-          const startIdx = slots.indexOf(r.start);
-          const endIdx = slots.indexOf(r.end);
-          const idx = slots.indexOf(time);
-          return r.room === rooms[0] && idx >= startIdx && idx < endIdx;
-        });
-        const isStart = reservation && reservation.start === time;
+    <div className="timetable">
+      {hours.slice(0, -1).map((slot, i) => {
+        const r = resMap[i];
+        const [sh, sm] = slot.split(":" ).map(Number);
+        const slotMinutes = sh * 60 + sm;
+        const isPast = isToday && slotMinutes < nowMinutes;
+        const rowClass = `time-slot ${r ? "reserved" : ""}`;
 
         return (
-          <div
-            key={time}
-            style={{
-              display: "flex",
-              justifyContent: "space-between",
-              alignItems: "center",
-              padding: "8px 12px",
-              borderBottom: "1px solid #eee"
-            }}
-          >
-            <span style={{ fontWeight: "bold" }}>{time}</span>
-            <span>
-              {reservation ? (
+          <div key={slot} className={rowClass} style={{ backgroundColor: i % 2 === 0 ? '#ffffff' : '#f7f7f7' }}>
+            <div className="slot-time">{slot}</div>
+            <div className="slot-info">
+              {r ? (
                 <>
-                  <span>{reservation.user}</span>
-                  {isStart && (
-                    <button
-                      style={{ marginLeft: "8px", padding: "4px 8px", fontSize: "0.8em" }}
-                      onClick={() => onCancel(reservation.id)}
-                    >
-                      취소
-                    </button>
-                  )}
+                  <span>{r.user}</span>
+                  <button className="cancel" onClick={() => onCancel(r.id)}>취소</button>
                 </>
               ) : (
-                <span style={{ color: "#aaa" }}>—</span>
+                <span className="available">예약 가능</span>
               )}
-            </span>
+            </div>
           </div>
         );
       })}
@@ -52,3 +51,4 @@ export default function TimeTable({ reservations, onCancel, currentTime }) {
   );
 }
 
+export default TimeTable;

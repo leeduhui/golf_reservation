@@ -17,26 +17,38 @@ function App() {
 
   const fetchReservations = async () => {
     const { data, error } = await supabase
-      .from("reservations")
-      .select("*")
-      .order("inserted_at", { ascending: true });
+    .from("reservations")
+    .select("*")
+    .eq("date", viewedDateString)
+    .order("inserted_at", { ascending: true });
+
     if (!error) setReservations(data || []);
+};
+
+useEffect(() => {
+  fetchReservations(); // viewedDateString이 바뀔 때마다 새로 조회
+}, [viewedDateString]);
+
+useEffect(() => {
+  const channel = supabase
+    .channel("public:reservations")
+    .on("postgres_changes", { event: "*", schema: "public", table: "reservations" }, payload => {
+      console.log("[Realtime Update]", payload);
+      fetchReservations(); // 데이터 변경 시 반영
+    })
+    .subscribe();
+
+  return () => {
+    supabase.removeChannel(channel);
   };
-
-  useEffect(() => { fetchReservations(); }, []);
-
-  useEffect(() => {
-    const channel = supabase
-      .channel("public:reservations")
-      .on("postgres_changes", { event: "*", schema: "public", table: "reservations" }, fetchReservations)
-      .subscribe();
-    return () => supabase.removeChannel(channel);
-  }, []);
+}, []);
 
   useEffect(() => {
     const timer = setInterval(() => setNow(new Date()), 1000);
     return () => clearInterval(timer);
   }, []);
+
+  const filteredReservations = reservations.filter(r => r.date === viewedDateString);
 
   const handleReserve = async newRes => {
     const { error } = await supabase.from("reservations").insert({
@@ -44,26 +56,28 @@ function App() {
       start: newRes.start,
       end: newRes.end,
       user: newRes.user,
-      date: viewedDateString,
+      date: viewedDateString
     });
     if (error) {
       console.error("[Supabase Error] 예약 실패:", error.message);
       alert("예약 중 오류가 발생했습니다: " + error.message);
     } else {
-      fetchReservations();
+      await fetchReservations();
     }
   };
 
   const handleCancel = async id => {
     const { error } = await supabase.from("reservations").delete().eq("id", id);
-    if (!error) fetchReservations();
+    if (error) {
+      console.error("[Supabase Error] 예약 취소 실패:", error.message);
+    } else {
+      await fetchReservations();
+    }
   };
 
   const handleDateChange = offset => {
     setCurrentDateOffset(offset);
   };
-
-  const filteredReservations = reservations.filter(r => r.date === viewedDateString);
 
   return (
     <div className="container" style={{ maxWidth: "480px", margin: "0 auto", padding: "1rem", fontFamily: "-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif" }}>
@@ -103,12 +117,29 @@ function App() {
         })}
       </div>
 
-      <div style={{ background: "white", borderRadius: "16px", padding: "16px", boxShadow: "0 2px 6px rgba(0,0,0,0.06)", marginBottom: "1.5rem" }}>
-        <TimeTable reservations={filteredReservations} onCancel={handleCancel} currentTime={now} />
+      <div style={{ background: "white", borderRadius: "16px", padding: "20px", boxShadow: "0 2px 8px rgba(0,0,0,0.08)", marginBottom: "1.5rem", fontSize: "1.1rem" }}>
+        <h3 style={{ fontSize: "1.2rem", fontWeight: 600, marginBottom: "12px" }}>예약 현황</h3>
+        <TimeTable
+          reservations={filteredReservations}
+          onCancel={handleCancel}
+          currentTime={now}
+          viewedDate={viewedDateString}
+          style={{ borderTop: "1px solid #eee" }}
+        />
       </div>
 
-      <div style={{ background: "white", borderRadius: "16px", padding: "16px", boxShadow: "0 2px 6px rgba(0,0,0,0.06)" }}>
-        <ReserveForm reservations={filteredReservations} onReserve={handleReserve} currentTime={now} />
+      <div style={{ background: "white", borderRadius: "16px", padding: "20px", boxShadow: "0 2px 8px rgba(0,0,0,0.08)", fontSize: "1.1rem" }}>
+        <h3 style={{ fontSize: "1.2rem", fontWeight: 600, marginBottom: "12px" }}>새 예약 추가</h3>
+        <div style={{ marginBottom: "10px", fontWeight: 500, fontSize: "1rem" }}>방 번호</div>
+        <div style={{ marginBottom: "12px" }}>
+          <ReserveForm
+            reservations={filteredReservations}
+            onReserve={handleReserve}
+            currentTime={now}
+            viewedDate={viewedDateString}
+            style={{ fontSize: "1.1rem", padding: "10px", minHeight: "50px" }}
+          />
+        </div>
       </div>
     </div>
   );
