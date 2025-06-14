@@ -7,6 +7,7 @@ function ReserveForm({ reservations, onReserve, currentTime }) {
   const [start, setStart] = useState("");
   const [end, setEnd] = useState("");
   const [user, setUser] = useState("");
+  const [password, setPassword] = useState("");
 
   const nowMinutes = currentTime.getHours() * 60 + currentTime.getMinutes();
 
@@ -21,10 +22,9 @@ function ReserveForm({ reservations, onReserve, currentTime }) {
     boundaryMinutes = Math.ceil(nowMinutes / 30) * 30;
   }
 
-  // 초기 값 설정: start는 boundaryMinutes 이후 첫 슬롯, end는 그 다음 슬롯
   useEffect(() => {
     const available = slots.filter(s => {
-      const [h, m] = s.split(":").map(Number);
+      const [h, m] = s.split(":" ).map(Number);
       return h * 60 + m >= boundaryMinutes;
     });
     if (available.length >= 2) {
@@ -50,8 +50,13 @@ function ReserveForm({ reservations, onReserve, currentTime }) {
       alert("이미 예약이 있습니다.");
       return;
     }
-    onReserve({ id: `${room}-${start}-${end}`, room, start, end, user });
+    if (!/^\d{4}$/.test(password)) {
+      alert("4자리 숫자 비밀번호를 입력해주세요.");
+      return;
+    }
+    onReserve({ id: `${room}-${start}-${end}`, room, start, end, user, password });
     setUser("");
+    setPassword("");
   };
 
   return (
@@ -67,7 +72,7 @@ function ReserveForm({ reservations, onReserve, currentTime }) {
         시작 시간
         <select value={start} onChange={e => setStart(e.target.value)} style={{ fontSize: "1.1rem", padding: "10px", minHeight: "44px", width: "100%" }}>
           {slots.map(s => {
-            const [h, m] = s.split(":").map(Number);
+            const [h, m] = s.split(":" ).map(Number);
             const slotMinutes = h * 60 + m;
             const disabled = slotMinutes < boundaryMinutes;
             return <option key={s} value={s} disabled={disabled}>{s}</option>;
@@ -91,9 +96,9 @@ function ReserveForm({ reservations, onReserve, currentTime }) {
           }}
         >
           {slots.map(s => {
-            const [h, m] = s.split(":").map(Number);
+            const [h, m] = s.split(":" ).map(Number);
             const slotMinutes = h * 60 + m;
-            const startMinutes = start ? parseInt(start.split(":")[0], 10) * 60 + parseInt(start.split(":")[1], 10) : 0;
+            const startMinutes = start ? parseInt(start.split(":" )[0], 10) * 60 + parseInt(start.split(":" )[1], 10) : 0;
             const disabled = slotMinutes < boundaryMinutes || slotMinutes <= startMinutes;
             return <option key={s} value={s} disabled={disabled}>{s}</option>;
           })}
@@ -120,10 +125,31 @@ function ReserveForm({ reservations, onReserve, currentTime }) {
         />
       </div>
 
+      <div style={{ width: "100%" }}>
+        <label style={{ fontWeight: 500, fontSize: "1rem", display: "block", marginBottom: "6px" }}>
+          비밀번호 (4자리 숫자)
+        </label>
+        <input
+          type="password"
+          placeholder="****"
+          value={password}
+          onChange={e => setPassword(e.target.value)}
+          required
+          maxLength={4}
+          pattern="\d{4}"
+          style={{
+            fontSize: "1.1rem",
+            padding: "10px",
+            minHeight: "44px",
+            width: "100%",
+            boxSizing: "border-box"
+          }}
+        />
+      </div>
+
       <button type="submit" style={{ backgroundColor: "#007AFF", color: "white", border: "none", borderRadius: "8px", padding: "12px", fontSize: "1.1rem", fontWeight: 600 }}>예약하기</button>
     </form>
   );
 }
 
 export default ReserveForm;
-

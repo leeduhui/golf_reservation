@@ -17,31 +17,31 @@ function App() {
 
   const fetchReservations = async () => {
     const { data, error } = await supabase
-    .from("reservations")
-    .select("*")
-    .eq("date", viewedDateString)
-    .order("inserted_at", { ascending: true });
+      .from("reservations")
+      .select("*")
+      .eq("date", viewedDateString)
+      .order("inserted_at", { ascending: true });
 
     if (!error) setReservations(data || []);
-};
-
-useEffect(() => {
-  fetchReservations(); // viewedDateString이 바뀔 때마다 새로 조회
-}, [viewedDateString]);
-
-useEffect(() => {
-  const channel = supabase
-    .channel("public:reservations")
-    .on("postgres_changes", { event: "*", schema: "public", table: "reservations" }, payload => {
-      console.log("[Realtime Update]", payload);
-      fetchReservations(); // 데이터 변경 시 반영
-    })
-    .subscribe();
-
-  return () => {
-    supabase.removeChannel(channel);
   };
-}, []);
+
+  useEffect(() => {
+    fetchReservations();
+  }, [viewedDateString]);
+
+  useEffect(() => {
+    const channel = supabase
+      .channel("public:reservations")
+      .on("postgres_changes", { event: "*", schema: "public", table: "reservations" }, payload => {
+        console.log("[Realtime Update]", payload);
+        fetchReservations();
+      })
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, []);
 
   useEffect(() => {
     const timer = setInterval(() => setNow(new Date()), 1000);
@@ -56,6 +56,7 @@ useEffect(() => {
       start: newRes.start,
       end: newRes.end,
       user: newRes.user,
+      password: newRes.password,
       date: viewedDateString
     });
     if (error) {
@@ -146,4 +147,3 @@ useEffect(() => {
 }
 
 export default App;
-
