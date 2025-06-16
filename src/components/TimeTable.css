@@ -1,5 +1,4 @@
 /* src/components/TimeTable.css */
-
 .timetable {
   display: flex;
   flex-direction: column;
@@ -19,6 +18,17 @@
 
 .time-slot:nth-child(even) {
   background-color: #f9f9f9;
+}
+
+/* 과거 슬롯 비활성화 스타일 */
+.time-slot.past {
+  background-color: #f0f0f0;
+  cursor: not-allowed;
+}
+
+.time-slot.past .slot-time,
+.time-slot.past .slot-info {
+  color: #aaa;
 }
 
 .slot-time {
@@ -57,6 +67,82 @@
   margin-left: 10px;
 }
 
-.cancel:hover {
+.cancel:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.cancel:hover:not(:disabled) {
   background-color: #e3322a;
+}
+
+/* 모달 백드롭 */
+.modal-backdrop {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(0, 0, 0, 0.4);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+}
+
+/* 취소 모달 박스 */
+.cancel-modal {
+  background: #fff;
+  border-radius: 8px;
+  padding: 20px;
+  width: 280px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+.cancel-modal h3 {
+  margin: 0 0 8px;
+}
+
+.cancel-modal p {
+  margin: 0 0 12px;
+  font-size: 0.9rem;
+  color: #333;
+}
+
+.cancel-modal input {
+  width: 100%;
+  padding: 8px;
+  margin-bottom: 8px;
+  box-sizing: border-box;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+}
+
+.cancel-modal .error {
+  color: red;
+  font-size: 0.85rem;
+  margin-bottom: 8px;
+}
+
+.modal-buttons {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
+.modal-buttons button {
+  padding: 6px 12px;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+.modal-buttons button:first-child {
+  background: #ff3b30;
+  color: #fff;
+}
+
+.modal-buttons button:last-child {
+  background: #ddd;
+  color: #333;
 }
