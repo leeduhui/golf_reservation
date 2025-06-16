@@ -1,8 +1,7 @@
-/* src/components/TimeTable.js */
+// src/components/TimeTable.js
 import React, { useState } from "react";
 import "./TimeTable.css";
 
-// 05:00 ~ 24:00 30분 단위, "24:00" 포함
 const hours = Array.from({ length: 39 }, (_, i) => {
   const totalMin = 300 + i * 30;
   const h = Math.floor(totalMin / 60);
@@ -11,38 +10,33 @@ const hours = Array.from({ length: 39 }, (_, i) => {
 });
 
 function TimeTable({ reservations, onCancel, currentTime, viewedDate }) {
+  const now = new Date(currentTime);
+  const todayStr = now.toISOString().split("T")[0];
+  const nowMinutes = now.getHours() * 60 + now.getMinutes();
+
+  const isBeforeToday = viewedDate < todayStr;
+  const isToday = viewedDate === todayStr;
+
+  // 그룹 정보 계산
+  const groups = reservations.map(r => {
+    const startIndex = hours.indexOf(r.start);
+    const endIndex = hours.indexOf(r.end);
+    return { ...r, startIndex, endIndex, span: endIndex - startIndex };
+  });
+
+  // 모달 상태
   const [isModalOpen, setModalOpen] = useState(false);
   const [selectedRes, setSelectedRes] = useState(null);
   const [passwordInput, setPasswordInput] = useState("");
   const [error, setError] = useState("");
 
-  // 예약을 인덱스별로 매핑
-  const resMap = {};
-  reservations.forEach(r => {
-    const sIdx = hours.indexOf(r.start);
-    const eIdx = hours.indexOf(r.end);
-    for (let i = sIdx; i < eIdx; i++) resMap[i] = r;
-  });
-
-  // 현재 시간, 오늘 여부, 분 단위 계산
-  const now = new Date(currentTime);
-  const nowMinutes = now.getHours() * 60 + now.getMinutes();
-  const isToday = viewedDate === now.toISOString().split("T")[0];
-
-  // 모달 열기
-  const openCancelModal = reservation => {
-    setSelectedRes(reservation);
+  const openCancelModal = grp => {
+    setSelectedRes(grp);
     setPasswordInput("");
     setError("");
     setModalOpen(true);
   };
-  const closeModal = () => {
-    setModalOpen(false);
-    setSelectedRes(null);
-    setError("");
-  };
-
-  // 모달 확인
+  const closeModal = () => setModalOpen(false);
   const confirmCancel = () => {
     if (passwordInput === selectedRes.password) {
       onCancel(selectedRes.id);
@@ -56,33 +50,83 @@ function TimeTable({ reservations, onCancel, currentTime, viewedDate }) {
     <>
       <div className="timetable">
         {hours.map((slot, idx) => {
-          const r = resMap[idx];
+          // 이 인덱스가 그룹의 시작인지?
+          const grp = groups.find(g => g.startIndex === idx);
+          if (grp) {
+            // 그룹 단위 렌더링
+            const { span, user, id } = grp;
+            const groupIsPast =
+              isBeforeToday ||
+              (isToday &&
+                (() => {
+                  const [h, m] = slot.split(":").map(Number);
+                  return h * 60 + m + (span - 1) * 30 < nowMinutes;
+                })());
+
+            return (
+              <div
+                key={slot}
+                className={`reserved-group ${groupIsPast ? "past" : ""}`}
+                // flex column / gap 는 CSS에서 처리
+              >
+                {hours.slice(idx, idx + span).map((innerSlot, j) => {
+                  const [h, m] = innerSlot.split(":").map(Number);
+                  const slotMin = h * 60 + m;
+                  const isPastSlot = groupIsPast || false;
+                  return (
+                    <div
+                      key={innerSlot}
+                      className={`time-slot ${isPastSlot ? "past" : ""}`}
+                      onClick={() =>
+                        j === 0 && !isPastSlot && openCancelModal(grp)
+                      }
+                    >
+                      <div className="slot-time">{innerSlot}</div>
+                      <div className="slot-info">
+                        {j === 0 ? (
+                          <>
+                            <span>{user}</span>
+                            <button
+                              className="cancel"
+                              onClick={e => {
+                                e.stopPropagation();
+                                openCancelModal(grp);
+                              }}
+                              disabled={isPastSlot}
+                            >
+                              취소
+                            </button>
+                          </>
+                        ) : null}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            );
+          }
+
+          // 그룹 내부(시작 이후) 슬롯은 skip
+          if (groups.some(g => idx > g.startIndex && idx < g.endIndex)) {
+            return null;
+          }
+
+          // 예약 없는 슬롯
           const [h, m] = slot.split(":").map(Number);
           const slotMin = h * 60 + m;
-          const isPast = isToday && slotMin < nowMinutes;
+          const isPastSlot =
+            isBeforeToday || (isToday && slotMin < nowMinutes);
 
           return (
             <div
               key={slot}
-              className={`time-slot ${r ? "reserved" : ""} ${isPast ? "past" : ""}`}
-              onClick={() => r && !isPast && openCancelModal(r)}
+              className={`time-slot ${isPastSlot ? "past" : ""}`}
             >
               <div className="slot-time">{slot}</div>
               <div className="slot-info">
-                {r ? (
-                  <>
-                    <span>{r.user}</span>
-                    <button
-                      className="cancel"
-                      onClick={e => { e.stopPropagation(); openCancelModal(r); }}
-                      disabled={isPast}
-                    >
-                      취소
-                    </button>
-                  </>
-                ) : (
-                  <span className="available">예약 가능</span>
-                )}
+                <span className="available">
+                  {isPastSlot ? "지나감" : "예약 가능"}
+                </span>
               </div>
             </div>
           );

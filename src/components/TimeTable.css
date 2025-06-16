@@ -5,66 +5,70 @@
   gap: 4px;
 }
 
+/* 그룹 전체에 테두리 감싸는 wrapper */
+.reserved-group {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  border: 2px solid #ff3b30;
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+/* 일반 슬롯 */
 .time-slot {
   display: flex;
   align-items: center;
   justify-content: space-between;
   padding: 8px 12px;
-  border-radius: 8px;
+  background: #fff;
+  transition: background-color 0.2s;
   font-size: 0.95rem;
-  transition: background-color 0.2s ease;
-  background-color: #fff;
 }
 
 .time-slot:nth-child(even) {
-  background-color: #f9f9f9;
+  background: #f9f9f9;
 }
 
-/* 과거 슬롯 비활성화 스타일 */
+/* 과거 슬롯 스타일 */
 .time-slot.past {
-  background-color: #f0f0f0;
-  cursor: not-allowed;
-}
-
-.time-slot.past .slot-time,
-.time-slot.past .slot-info {
+  background: #f0f0f0;
   color: #aaa;
 }
 
-.slot-time {
-  flex: 0 0 70px;
-  color: #888;
-  font-weight: 500;
+.time-slot.past .available {
+  color: #ccc;
 }
 
+/* 슬롯 시간 레이블 */
+.slot-time {
+  flex: 0 0 60px;
+  color: #888;
+}
+
+/* 우측 슬롯 정보 */
 .slot-info {
   flex: 1;
   display: flex;
-  justify-content: space-between;
+  justify-content: flex-end;
   align-items: center;
-  font-weight: 500;
-  overflow-wrap: anywhere;
 }
 
-.slot-info .available {
-  color: #aaa;
+.available {
   font-style: italic;
+  color: #555;
 }
 
-.reserved .slot-info span {
-  color: #333;
-  font-weight: 600;
-}
-
+/* 취소 버튼 */
 .cancel {
-  background-color: #ff3b30;
-  color: white;
+  margin-left: 8px;
+  background: #ff3b30;
+  color: #fff;
   border: none;
   border-radius: 6px;
   padding: 4px 8px;
   font-size: 0.8rem;
   cursor: pointer;
-  margin-left: 10px;
 }
 
 .cancel:disabled {
@@ -72,21 +76,13 @@
   cursor: not-allowed;
 }
 
-.cancel:hover:not(:disabled) {
-  background-color: #e3322a;
-}
-
-/* 모달 백드롭 */
+/* 모달 & 백드롭 (기존과 동일) */
 .modal-backdrop {
   position: fixed;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-  background: rgba(0, 0, 0, 0.4);
-  display: flex;
-  align-items: center;
-  justify-content: center;
+  top: 0; left: 0;
+  width: 100%; height: 100%;
+  background: rgba(0,0,0,0.4);
+  display: flex; align-items: center; justify-content: center;
   z-index: 1000;
 }
 
@@ -96,53 +92,35 @@
   border-radius: 8px;
   padding: 20px;
   width: 280px;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
-}
-
-.cancel-modal h3 {
-  margin: 0 0 8px;
-}
-
-.cancel-modal p {
-  margin: 0 0 12px;
-  font-size: 0.9rem;
-  color: #333;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.15);
 }
 
 .cancel-modal input {
   width: 100%;
   padding: 8px;
   margin-bottom: 8px;
-  box-sizing: border-box;
   border: 1px solid #ccc;
   border-radius: 4px;
 }
 
-.cancel-modal .error {
+.error {
   color: red;
   font-size: 0.85rem;
   margin-bottom: 8px;
 }
 
 .modal-buttons {
-  display: flex;
-  justify-content: flex-end;
-  gap: 8px;
+  display: flex; justify-content: flex-end; gap: 8px;
 }
 
 .modal-buttons button {
-  padding: 6px 12px;
-  border: none;
-  border-radius: 4px;
-  cursor: pointer;
+  padding: 6px 12px; border: none; border-radius: 4px; cursor: pointer;
 }
 
 .modal-buttons button:first-child {
-  background: #ff3b30;
-  color: #fff;
+  background: #ff3b30; color: #fff;
 }
 
 .modal-buttons button:last-child {
-  background: #ddd;
-  color: #333;
+  background: #ddd; color: #333;
 }
