@@ -2,24 +2,34 @@
 import React, { useState, useEffect } from "react";
 import { rooms, slots } from "../utils/data";
 
-function ReserveForm({ reservations, onReserve, currentTime }) {
+function ReserveForm({ reservations, onReserve, currentTime, viewedDate}) {
   const [room, setRoom] = useState("1");
   const [start, setStart] = useState("");
   const [end, setEnd] = useState("");
   const [user, setUser] = useState("");
   const [password, setPassword] = useState("");
 
+  const isPastDate = new Date(viewedDate) < new Date(currentTime.toISOString().split("T")[0]);
+  const isToday = new Date(viewedDate).toDateString() === new Date(currentTime).toDateString();
+
   const nowMinutes = currentTime.getHours() * 60 + currentTime.getMinutes();
 
   let boundaryMinutes;
   const windowStart = 5 * 60;
   const windowEnd = 24 * 60;
-  if (nowMinutes < windowStart) {
-    boundaryMinutes = windowStart;
-  } else if (nowMinutes >= windowEnd) {
-    boundaryMinutes = Infinity;
+
+  if(isPastDate){
+    boundaryMinutes = Infinity; //전날은 모두 disable
+  } else if (isToday) {
+    if (nowMinutes < windowStart) {
+      boundaryMinutes = windowStart;
+    } else if (nowMinutes >= windowEnd) {
+      boundaryMinutes = Infinity;
+    } else {
+      boundaryMinutes = Math.ceil(nowMinutes / 30) * 30;
+    }
   } else {
-    boundaryMinutes = Math.ceil(nowMinutes / 30) * 30;
+    boundaryMinutes = 0; //미래는 모두 허용
   }
 
   useEffect(() => {
